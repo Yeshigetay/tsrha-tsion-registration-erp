@@ -1,16 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import BackToHomeButton from "@/components/layout/BackToHomeButton";
-
-<div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-  <h1 className="text-2xl font-bold text-[#0d3b78]">
-    የአባል መረጃ
-  </h1>
-
-  <BackToHomeButton />
-</div>
-
 import { notFound, redirect } from "next/navigation";
+import type { ReactNode } from "react";
+
 import {
   ArrowLeft,
   Edit,
@@ -156,6 +149,7 @@ export default async function MemberInformationPage({
             </Link>
 
             <div>
+
               <h1 className="text-lg font-bold">
                 የአባል መረጃ
               </h1>
@@ -163,18 +157,25 @@ export default async function MemberInformationPage({
               <p className="text-xs text-blue-100">
                 የአባሉን ሙሉ መረጃ ይመልከቱ
               </p>
+
             </div>
 
           </div>
 
 
-          <Link
-            href={`/dashboard/student/${member.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#d4af37] px-4 py-2.5 text-sm font-bold text-[#172033] transition hover:bg-[#e2c65c]"
-          >
-            <Edit size={17} />
-            አርትዕ
-          </Link>
+          <div className="flex items-center gap-2">
+
+            <BackToHomeButton />
+
+            <Link
+              href={`/dashboard/student/${member.id}/edit`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#d4af37] px-4 py-2.5 text-sm font-bold text-[#172033] transition hover:bg-[#e2c65c]"
+            >
+              <Edit size={17} />
+              አርትዕ
+            </Link>
+
+          </div>
 
         </div>
 
@@ -188,7 +189,6 @@ export default async function MemberInformationPage({
       ====================================================== */}
 
       <section className="mx-auto max-w-7xl px-5 py-7 sm:px-6 sm:py-10">
-
 
         {/* ====================================================
             MEMBER PROFILE HEADER
@@ -292,7 +292,8 @@ export default async function MemberInformationPage({
           <InfoItem
             label="ዕድሜ"
             value={
-              member.age !== null && member.age !== undefined
+              member.age !== null &&
+              member.age !== undefined
                 ? `${member.age}`
                 : "-"
             }
@@ -444,7 +445,7 @@ export default async function MemberInformationPage({
           title="የወላጅ / አሳዳጊ መረጃ"
         >
 
-          <div className="mb-6 flex justify-center sm:justify-start">
+          <div className="mb-6 flex justify-center sm:col-span-2 sm:justify-start">
 
             <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-[#d4af37]/25 bg-[#f8f5ec]">
 
@@ -542,7 +543,7 @@ export default async function MemberInformationPage({
 
 
         {/* ====================================================
-            CONFIRMATION
+            CONFIRMATION & SIGNATURES
         ==================================================== */}
 
         <InformationSection
@@ -552,15 +553,23 @@ export default async function MemberInformationPage({
 
           <InfoItem
             label="የአባል ማረጋገጫ"
-            value={member.member_confirmed ? "ተረጋግጧል" : "አልተረጋገጠም"}
+            value={
+              member.member_confirmed
+                ? "ተረጋግጧል"
+                : "አልተረጋገጠም"
+            }
           />
 
-          <InfoItem
+          {/* MEMBER SIGNATURE */}
+
+          <SignatureItem
             label="የአባል ፊርማ"
             value={member.member_signature}
           />
 
-          <InfoItem
+          {/* GUARDIAN SIGNATURE */}
+
+          <SignatureItem
             label="የአሳዳጊ ፊርማ"
             value={member.guardian_signature}
           />
@@ -603,7 +612,9 @@ export default async function MemberInformationPage({
             value={member.registrar_name}
           />
 
-          <InfoItem
+          {/* REGISTRAR SIGNATURE */}
+
+          <SignatureItem
             label="የመዝጋቢ ፊርማ"
             value={member.registrar_signature}
           />
@@ -613,7 +624,9 @@ export default async function MemberInformationPage({
             value={member.class_leader_name}
           />
 
-          <InfoItem
+          {/* CLASS LEADER SIGNATURE */}
+
+          <SignatureItem
             label="የክፍል መሪ ፊርማ"
             value={member.class_leader_signature}
           />
@@ -623,7 +636,9 @@ export default async function MemberInformationPage({
             value={member.chairman_name}
           />
 
-          <InfoItem
+          {/* CHAIRMAN SIGNATURE */}
+
+          <SignatureItem
             label="የሰብሳቢ ፊርማ"
             value={member.chairman_signature}
           />
@@ -724,10 +739,70 @@ function InfoItem({
       </div>
 
       <p className="mt-1.5 break-words text-sm font-medium text-[#172033]">
-        {value !== null && value !== undefined && value !== ""
+        {value !== null &&
+        value !== undefined &&
+        value !== ""
           ? String(value)
           : "-"}
       </p>
+
+    </div>
+  );
+}
+
+
+/* ============================================================
+   SIGNATURE ITEM
+============================================================ */
+
+function SignatureItem({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
+  const isSignatureImage =
+    typeof value === "string" &&
+    value.startsWith("data:image/");
+
+  return (
+    <div className="min-w-0">
+
+      {/* LABEL */}
+
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+        <Edit size={14} />
+        {label}
+      </div>
+
+
+      {/* SIGNATURE DISPLAY */}
+
+      <div className="mt-2 flex min-h-[100px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-[#fafafa] p-4 sm:justify-start">
+
+        {isSignatureImage ? (
+          <img
+            src={value}
+            alt={label}
+            className="max-h-24 max-w-full object-contain"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-1 text-center">
+
+            <Edit
+              size={25}
+              className="text-gray-300"
+            />
+
+            <p className="text-sm font-medium text-gray-400">
+              ፊርማ የለም
+            </p>
+
+          </div>
+        )}
+
+      </div>
 
     </div>
   );

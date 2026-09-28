@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -16,6 +17,7 @@ import {
   BookOpen,
   Church,
   ChevronRight,
+  ClipboardCheck,
 } from "lucide-react";
 
 import LogoutButton from "@/components/auth/LogoutButton";
@@ -27,8 +29,12 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // IMPORTANT:
+  // If there is no authenticated user, send them to the login page.
+  // Do not redirect to "/" because "/" is the login page and can
+  // contribute to an authentication redirect loop.
   if (!user) {
-    redirect("/");
+    redirect("/login");
   }
 
   // ============================================================
@@ -88,7 +94,7 @@ export default async function DashboardPage() {
     .eq("registration_date", todayString);
 
   return (
-    <main className="min-h-screen bg-[#f8f5ec] text-[#172033]">
+    <main className="min-h-screen overflow-x-hidden bg-[#f8f5ec] text-[#172033]">
 
       {/* =====================================================
           PREMIUM HEADER
@@ -98,40 +104,43 @@ export default async function DashboardPage() {
 
         {/* Decorative circles */}
 
-        <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full border border-[#d4af37]/20" />
+        <div className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full border border-[#d4af37]/20" />
 
-        <div className="pointer-events-none absolute -right-10 -top-14 h-48 w-48 rounded-full border border-[#d4af37]/15" />
+        <div className="pointer-events-none absolute -right-12 -top-14 h-48 w-48 rounded-full border border-[#d4af37]/15" />
 
-        <div className="pointer-events-none absolute -left-24 bottom-[-120px] h-64 w-64 rounded-full border border-white/5" />
+        <div className="pointer-events-none absolute -left-28 bottom-[-130px] h-64 w-64 rounded-full border border-white/5" />
 
-        <div className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-white/[0.015] blur-2xl" />
+
+        <div className="relative mx-auto flex min-h-[76px] w-full max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:min-h-[84px] sm:px-6 sm:py-5 lg:px-8">
 
           {/* =================================================
               SCHOOL BRAND
           ================================================= */}
 
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
 
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-[#d4af37]/50 bg-white shadow-lg">
+            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#d4af37]/60 bg-white shadow-lg sm:h-12 sm:w-12 sm:rounded-2xl">
 
               <Image
                 src="/logo.png"
                 alt="ጽርሐ ጽዮን ሰንበት ት/ቤት"
-                width={42}
-                height={42}
-                className="object-contain"
+                width={48}
+                height={48}
+                sizes="48px"
+                className="h-full w-full object-contain p-1"
                 priority
               />
 
             </div>
 
-            <div>
+            <div className="min-w-0 max-w-[150px] sm:max-w-none">
 
-              <h1 className="text-base font-bold tracking-wide text-white sm:text-lg">
+              <h1 className="truncate text-sm font-bold tracking-wide text-white sm:text-lg">
                 ጽርሐ ጽዮን
               </h1>
 
-              <p className="text-xs font-medium text-[#f5d77a]">
+              <p className="truncate text-[10px] font-medium text-[#f5d77a] sm:text-xs">
                 ሰንበት ት/ቤት
               </p>
 
@@ -144,9 +153,11 @@ export default async function DashboardPage() {
               ADMIN PROFILE + LOGOUT
           ================================================= */}
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
 
-            <div className="hidden items-center gap-3 sm:flex">
+            {/* Desktop / tablet profile */}
+
+            <div className="hidden items-center gap-3 md:flex">
 
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#d4af37]/60 bg-white shadow-md">
 
@@ -178,7 +189,27 @@ export default async function DashboardPage() {
 
             </div>
 
-            <LogoutButton />
+            {/* Mobile avatar */}
+
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#d4af37]/60 bg-white shadow-md md:hidden">
+
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={adminName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-xs font-bold text-[#0d3b78]">
+                  {adminInitial}
+                </span>
+              )}
+
+            </div>
+
+            <div className="shrink-0">
+              <LogoutButton />
+            </div>
 
           </div>
 
@@ -195,42 +226,76 @@ export default async function DashboardPage() {
           MAIN CONTENT
       ===================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 py-7 sm:px-6 sm:py-10">
+      <section className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
 
         {/* =================================================
             WELCOME HERO
         ================================================= */}
 
-        <div className="relative overflow-hidden rounded-[2rem] border border-[#d4af37]/30 bg-white shadow-sm">
+        <div className="relative overflow-hidden rounded-[1.5rem] border border-[#d4af37]/30 bg-white shadow-sm sm:rounded-[2rem]">
 
           {/* Background decoration */}
 
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#0d3b78]/[0.025]" />
+          <div className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full bg-[#0d3b78]/[0.025]" />
 
-          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full border border-[#d4af37]/20" />
+          <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full border border-[#d4af37]/20" />
 
           <div className="pointer-events-none absolute -bottom-24 -left-20 h-52 w-52 rounded-full border border-[#0d3b78]/5" />
 
-          <div className="relative p-6 sm:p-8 lg:p-10">
+          <div className="relative p-5 sm:p-8 lg:p-10">
 
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
 
               {/* =================================================
                   WELCOME CONTENT
               ================================================= */}
 
-              <div className="max-w-2xl">
+              <div className="min-w-0 max-w-2xl">
 
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#d4af37]/30 bg-[#d4af37]/10 px-3.5 py-2 text-xs font-bold text-[#0d3b78]">
+                {/* Mobile logo */}
 
-                  <Church size={14} />
+                <div className="mb-5 flex items-center gap-3 lg:hidden">
 
-                  ጽርሐ ጽዮን ሰንበት ት/ቤት
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#d4af37]/40 bg-[#f8f5ec] shadow-sm">
+
+                    <Image
+                      src="/logo.png"
+                      alt="ጽርሐ ጽዮን ሰንበት ት/ቤት"
+                      width={64}
+                      height={64}
+                      sizes="64px"
+                      className="h-full w-full object-contain p-1"
+                    />
+
+                  </div>
+
+                  <div className="min-w-0">
+
+                    <p className="text-sm font-bold text-[#0d3b78]">
+                      ጽርሐ ጽዮን
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      ሰንበት ት/ቤት
+                    </p>
+
+                  </div>
 
                 </div>
 
 
-                <h2 className="text-2xl font-bold leading-tight tracking-tight text-[#172033] sm:text-3xl lg:text-4xl">
+                <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-[#d4af37]/30 bg-[#d4af37]/10 px-3 py-1.5 text-[11px] font-bold text-[#0d3b78] sm:mb-5 sm:px-3.5 sm:py-2 sm:text-xs">
+
+                  <Church size={14} className="shrink-0" />
+
+                  <span className="truncate">
+                    ጽርሐ ጽዮን ሰንበት ት/ቤት
+                  </span>
+
+                </div>
+
+
+                <h2 className="text-[1.65rem] font-bold leading-[1.25] tracking-tight text-[#172033] sm:text-3xl lg:text-4xl">
 
                   እንኳን ወደ አስተዳደር ዳሽቦርዱ
 
@@ -243,7 +308,7 @@ export default async function DashboardPage() {
                 </h2>
 
 
-                <p className="mt-4 max-w-xl text-sm leading-7 text-gray-500 sm:text-base">
+                <p className="mt-3 max-w-xl text-sm leading-6 text-gray-500 sm:mt-4 sm:text-base sm:leading-7">
 
                   የሰንበት ት/ቤቱን አባላት ምዝገባ፣
                   ትምህርት እና አስተዳደር በአንድ ቦታ
@@ -258,16 +323,17 @@ export default async function DashboardPage() {
                   LARGE LOGO
               ================================================= */}
 
-              <div className="hidden lg:flex lg:h-36 lg:w-36 lg:shrink-0 lg:items-center lg:justify-center lg:rounded-full lg:border lg:border-[#d4af37]/40 lg:bg-[#f8f5ec] lg:shadow-inner">
+              <div className="hidden shrink-0 items-center justify-center rounded-full border border-[#d4af37]/40 bg-[#f8f5ec] shadow-inner lg:flex lg:h-36 lg:w-36">
 
-                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-[#d4af37]/30 bg-white shadow-md">
+                <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-[#d4af37]/30 bg-white shadow-md">
 
                   <Image
                     src="/logo.png"
                     alt="ጽርሐ ጽዮን ሰንበት ት/ቤት"
-                    width={96}
-                    height={96}
-                    className="object-contain"
+                    width={112}
+                    height={112}
+                    sizes="112px"
+                    className="h-full w-full object-contain p-2"
                   />
 
                 </div>
@@ -290,27 +356,27 @@ export default async function DashboardPage() {
             MEMBER SEARCH
         ===================================================== */}
 
-        <div className="mt-7 overflow-hidden rounded-[1.75rem] border border-[#d4af37]/25 bg-white shadow-sm">
+        <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white shadow-sm sm:mt-7 sm:rounded-[1.75rem]">
 
-          <div className="p-5 sm:p-6">
+          <div className="p-4 sm:p-6">
 
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-5">
 
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
 
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0d3b78] to-[#174d91] text-white shadow-md">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0d3b78] to-[#174d91] text-white shadow-md sm:h-12 sm:w-12 sm:rounded-2xl">
 
-                  <UserRoundSearch size={21} />
+                  <UserRoundSearch size={20} />
 
                 </div>
 
-                <div>
+                <div className="min-w-0">
 
                   <h3 className="font-bold text-[#172033]">
                     አባል ፈልግ
                   </h3>
 
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-[11px] leading-5 text-gray-500 sm:text-xs">
                     በስም፣ በምዝገባ ቁጥር ወይም በስልክ ይፈልጉ
                   </p>
 
@@ -322,21 +388,21 @@ export default async function DashboardPage() {
               <form
                 action="/dashboard/student"
                 method="GET"
-                className="flex w-full flex-col gap-2 sm:flex-row lg:max-w-2xl"
+                className="flex w-full min-w-0 flex-col gap-2 sm:flex-row lg:max-w-2xl"
               >
 
-                <div className="relative flex-1">
+                <div className="relative min-w-0 flex-1">
 
                   <Search
-                    size={18}
-                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={17}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 sm:left-4"
                   />
 
                   <input
                     type="text"
                     name="search"
                     placeholder="የአባሉን ስም፣ ምዝገባ ቁጥር ወይም ስልክ..."
-                    className="w-full rounded-xl border border-slate-200 bg-[#fafafa] py-3 pl-11 pr-4 text-sm text-[#172033] outline-none transition duration-200 hover:border-slate-300 focus:border-[#0d3b78] focus:bg-white focus:ring-4 focus:ring-[#0d3b78]/10"
+                    className="min-h-[46px] w-full rounded-xl border border-slate-200 bg-[#fafafa] py-3 pl-10 pr-3 text-sm text-[#172033] outline-none transition duration-200 hover:border-slate-300 focus:border-[#0d3b78] focus:bg-white focus:ring-4 focus:ring-[#0d3b78]/10 sm:pl-11 sm:pr-4"
                   />
 
                 </div>
@@ -344,7 +410,7 @@ export default async function DashboardPage() {
 
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0d3b78] to-[#174d91] px-6 py-3 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
+                  className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0d3b78] to-[#174d91] px-6 py-3 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
                 >
 
                   <Search size={17} />
@@ -366,33 +432,33 @@ export default async function DashboardPage() {
             STATISTICS
         ===================================================== */}
 
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:gap-4 lg:grid-cols-4">
 
           <DashboardCard
             title="ጠቅላላ አባላት"
             value={String(totalMembers ?? 0)}
-            icon={<Users size={23} />}
+            icon={<Users size={22} />}
             description="በስርዓቱ ውስጥ"
           />
 
           <DashboardCard
             title="ወንድ አባላት"
             value={String(maleMembers ?? 0)}
-            icon={<UserRound size={23} />}
+            icon={<UserRound size={22} />}
             description="ወንድ አባላት"
           />
 
           <DashboardCard
             title="ሴት አባላት"
             value={String(femaleMembers ?? 0)}
-            icon={<UserRound size={23} />}
+            icon={<UserRound size={22} />}
             description="ሴት አባላት"
           />
 
           <DashboardCard
             title="ዛሬ የተመዘገቡ"
             value={String(todayMembers ?? 0)}
-            icon={<UserPlus size={23} />}
+            icon={<UserPlus size={22} />}
             description="የዛሬ ምዝገባ"
           />
 
@@ -403,21 +469,21 @@ export default async function DashboardPage() {
             ADMINISTRATION ACTIONS
         ===================================================== */}
 
-        <div className="mt-10">
+        <div className="mt-8 sm:mt-10">
 
-          <div className="mb-5">
+          <div className="mb-4 sm:mb-5">
 
             <div className="flex items-center gap-3">
 
-              <div className="h-8 w-1 rounded-full bg-[#d4af37]" />
+              <div className="h-8 w-1 shrink-0 rounded-full bg-[#d4af37]" />
 
-              <div>
+              <div className="min-w-0">
 
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d4af37]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d4af37] sm:text-[11px]">
                   ADMINISTRATION
                 </p>
 
-                <h3 className="mt-1 text-xl font-bold text-[#172033]">
+                <h3 className="mt-1 text-lg font-bold text-[#172033] sm:text-xl">
                   የአስተዳዳሪ እርምጃዎች
                 </h3>
 
@@ -428,57 +494,49 @@ export default async function DashboardPage() {
           </div>
 
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
 
-            {/* =================================================
-                ADD MEMBER
-            ================================================= */}
+            {/* ADD MEMBER */}
 
             <Link
               href="/dashboard/students/new"
-              className="group"
+              className="group block min-w-0"
             >
 
-              <div className="relative h-full overflow-hidden rounded-[1.75rem] border border-[#d4af37]/25 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:p-7">
+              <div className="relative h-full overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
 
                 <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#0d3b78]/[0.035] transition duration-500 group-hover:scale-125" />
 
                 <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[#d4af37]/[0.035] transition duration-500 group-hover:scale-125" />
 
+                <div className="relative flex items-start justify-between gap-3">
 
-                <div className="relative flex items-start justify-between">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0d3b78] to-[#174d91] text-white shadow-md transition duration-300 group-hover:scale-105 group-hover:shadow-lg sm:h-14 sm:w-14 sm:rounded-2xl">
 
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0d3b78] to-[#174d91] text-white shadow-md transition duration-300 group-hover:scale-105 group-hover:shadow-lg">
-
-                    <UserRoundPlus size={27} />
+                    <UserRoundPlus size={25} />
 
                   </div>
 
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f5ec] text-gray-400 transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78] sm:h-9 sm:w-9">
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f5ec] text-gray-400 transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78]">
-
-                    <ArrowRight
-                      size={18}
-                      className="transition group-hover:translate-x-0.5"
-                    />
+                    <ArrowRight size={17} />
 
                   </div>
 
                 </div>
 
-
                 <div className="relative">
 
-                  <h4 className="mt-6 text-lg font-bold text-[#172033]">
+                  <h4 className="mt-5 text-base font-bold text-[#172033] sm:mt-6 sm:text-lg">
                     አዲስ አባል መመዝገብ
                   </h4>
 
-                  <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
+                  <p className="mt-2 text-[13px] leading-6 text-gray-500 sm:text-sm">
                     አዲስ አባልን በምዝገባ ስርዓቱ ውስጥ
                     በሙሉ መረጃ ይመዝግቡ።
                   </p>
 
-                  <div className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#0d3b78]">
+                  <div className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#0d3b78] sm:mt-5">
 
                     ምዝገባ ጀምር
 
@@ -496,35 +554,52 @@ export default async function DashboardPage() {
             </Link>
 
 
-            {/* =================================================
-                MEMBER LIST
-            ================================================= */}
+            {/* MEMBER LIST */}
 
             <Link
               href="/dashboard/student"
-              className="group"
+              className="group block min-w-0"
             >
 
-              <div className="relative h-full overflow-hidden rounded-[1.75rem] border border-[#d4af37]/25 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:p-7">
+              <div className="relative h-full overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
 
                 <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#d4af37]/[0.07] transition duration-500 group-hover:scale-125" />
 
                 <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[#0d3b78]/[0.025] transition duration-500 group-hover:scale-125" />
 
+                <div className="relative flex items-start justify-between gap-3">
 
-                <div className="relative flex items-start justify-between">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#d4af37]/30 bg-[#f8f5ec] text-[#0d3b78] shadow-sm transition duration-300 group-hover:scale-105 group-hover:bg-[#d4af37]/10 group-hover:shadow-md sm:h-14 sm:w-14 sm:rounded-2xl">
 
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#d4af37]/30 bg-[#f8f5ec] text-[#0d3b78] shadow-sm transition duration-300 group-hover:scale-105 group-hover:bg-[#d4af37]/10 group-hover:shadow-md">
-
-                    <Users size={27} />
+                    <Users size={25} />
 
                   </div>
 
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f5ec] text-gray-400 transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78] sm:h-9 sm:w-9">
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f8f5ec] text-gray-400 transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78]">
+                    <ArrowRight size={17} />
 
-                    <ArrowRight
-                      size={18}
+                  </div>
+
+                </div>
+
+                <div className="relative">
+
+                  <h4 className="mt-5 text-base font-bold text-[#172033] sm:mt-6 sm:text-lg">
+                    የአባላት ዝርዝር
+                  </h4>
+
+                  <p className="mt-2 text-[13px] leading-6 text-gray-500 sm:text-sm">
+                    የተመዘገቡ አባላትን ይመልከቱ፣
+                    ይፈልጉ እና መረጃቸውን ያስተዳድሩ።
+                  </p>
+
+                  <div className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#0d3b78] sm:mt-5">
+
+                    ዝርዝር ክፈት
+
+                    <ChevronRight
+                      size={16}
                       className="transition group-hover:translate-x-0.5"
                     />
 
@@ -532,21 +607,55 @@ export default async function DashboardPage() {
 
                 </div>
 
+              </div>
+
+            </Link>
+
+
+            {/* MEZMUR ATTENDANCE */}
+
+            <Link
+              href="/dashboard/attendance/mezmur"
+              className="group block min-w-0"
+            >
+
+              <div className="relative h-full overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
+
+                <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#0d3b78]/[0.035] transition duration-500 group-hover:scale-125" />
+
+                <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[#d4af37]/[0.045] transition duration-500 group-hover:scale-125" />
+
+                <div className="relative flex items-start justify-between gap-3">
+
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0d3b78] to-[#174d91] text-white shadow-md transition duration-300 group-hover:scale-105 group-hover:shadow-lg sm:h-14 sm:w-14 sm:rounded-2xl">
+
+                    <ClipboardCheck size={25} />
+
+                  </div>
+
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f8f5ec] text-gray-400 transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78] sm:h-9 sm:w-9">
+
+                    <ArrowRight size={17} />
+
+                  </div>
+
+                </div>
 
                 <div className="relative">
 
-                  <h4 className="mt-6 text-lg font-bold text-[#172033]">
-                    የአባላት ዝርዝር
+                  <h4 className="mt-5 text-base font-bold text-[#172033] sm:mt-6 sm:text-lg">
+                    የመዝሙር ክትትል
                   </h4>
 
-                  <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
-                    የተመዘገቡ አባላትን ይመልከቱ፣
-                    ይፈልጉ እና መረጃቸውን ያስተዳድሩ።
+                  <p className="mt-2 text-[13px] leading-6 text-gray-500 sm:text-sm">
+                    የመዝሙር ክፍሎችን አባላት ይመድቡ፣
+                    የዕለት ተዕለት መገኘትን ይመዝግቡ
+                    እና የአባላትን ክትትል ይመልከቱ።
                   </p>
 
-                  <div className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#0d3b78]">
+                  <div className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#0d3b78] sm:mt-5">
 
-                    ዝርዝር ክፈት
+                    ክትትል ጀምር
 
                     <ChevronRight
                       size={16}
@@ -570,21 +679,21 @@ export default async function DashboardPage() {
             EDUCATION / COURSES
         ===================================================== */}
 
-        <div className="mt-10">
+        <div className="mt-8 sm:mt-10">
 
-          <div className="mb-5">
+          <div className="mb-4 sm:mb-5">
 
             <div className="flex items-center gap-3">
 
-              <div className="h-8 w-1 rounded-full bg-[#d4af37]" />
+              <div className="h-8 w-1 shrink-0 rounded-full bg-[#d4af37]" />
 
               <div>
 
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d4af37]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d4af37] sm:text-[11px]">
                   EDUCATION
                 </p>
 
-                <h3 className="mt-1 text-xl font-bold text-[#172033]">
+                <h3 className="mt-1 text-lg font-bold text-[#172033] sm:text-xl">
                   ትምህርት እና ኮርሶች
                 </h3>
 
@@ -595,9 +704,7 @@ export default async function DashboardPage() {
           </div>
 
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-[#d4af37]/30 bg-gradient-to-br from-[#082f63] via-[#0d3b78] to-[#174d91] shadow-lg">
-
-            {/* Decorative elements */}
+          <div className="relative overflow-hidden rounded-[1.5rem] border border-[#d4af37]/30 bg-gradient-to-br from-[#082f63] via-[#0d3b78] to-[#174d91] shadow-lg sm:rounded-[2rem]">
 
             <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full border border-[#d4af37]/20" />
 
@@ -605,27 +712,25 @@ export default async function DashboardPage() {
 
             <div className="pointer-events-none absolute -bottom-24 -left-12 h-52 w-52 rounded-full border border-white/5" />
 
+            <div className="relative p-5 sm:p-8">
 
-            <div className="relative p-7 sm:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 
-              <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-start gap-3 sm:gap-4">
 
-                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#d4af37]/15 text-[#f5d77a] shadow-inner sm:h-14 sm:w-14 sm:rounded-2xl">
 
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d4af37]/15 text-[#f5d77a] shadow-inner">
-
-                    <BookOpen size={28} />
+                    <BookOpen size={25} />
 
                   </div>
 
+                  <div className="min-w-0">
 
-                  <div>
-
-                    <h4 className="text-lg font-bold text-white">
+                    <h4 className="text-base font-bold text-white sm:text-lg">
                       የአባላት ትምህርት አስተዳደር
                     </h4>
 
-                    <p className="mt-2 max-w-xl text-sm leading-6 text-blue-100/80">
+                    <p className="mt-2 max-w-xl text-[13px] leading-6 text-blue-100/80 sm:text-sm">
                       የአባላትን የትምህርት ደረጃ፣
                       ኮርሶች እና የትምህርት መዝገቦች
                       ለማስተዳደር የሚያገለግል ክፍል።
@@ -635,12 +740,11 @@ export default async function DashboardPage() {
 
                 </div>
 
-
-                <div className="flex flex-wrap gap-3">
+                <div className="flex w-full sm:w-auto">
 
                   <Link
                     href="/dashboard/academic-years"
-                    className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e3c75e] px-5 py-3 text-sm font-bold text-[#172033] shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                    className="group inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e3c75e] px-5 py-3 text-sm font-bold text-[#172033] shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:w-auto"
                   >
 
                     <BookOpen size={17} />
@@ -669,20 +773,19 @@ export default async function DashboardPage() {
             FOOTER
         ===================================================== */}
 
-        <footer className="mt-10 pb-6 pt-4 text-center">
+        <footer className="mt-8 pb-5 pt-3 text-center sm:mt-10 sm:pb-6 sm:pt-4">
 
-          <div className="mb-4 flex items-center justify-center gap-3">
+          <div className="mb-4 flex items-center justify-center gap-2 sm:gap-3">
 
-            <div className="h-px w-16 bg-gradient-to-r from-transparent to-[#d4af37]/50" />
+            <div className="h-px w-10 bg-gradient-to-r from-transparent to-[#d4af37]/50 sm:w-16" />
 
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#d4af37]/30 bg-white text-sm text-[#d4af37] shadow-sm">
               ✝
             </div>
 
-            <div className="h-px w-16 bg-gradient-to-l from-transparent to-[#d4af37]/50" />
+            <div className="h-px w-10 bg-gradient-to-l from-transparent to-[#d4af37]/50 sm:w-16" />
 
           </div>
-
 
           <p className="text-xs font-semibold text-[#0d3b78]">
             ጽርሐ ጽዮን ሰንበት ት/ቤት
@@ -717,38 +820,35 @@ function DashboardCard({
   description: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-[1.5rem] border border-[#d4af37]/20 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/45 hover:shadow-lg">
+    <div className="group relative min-w-0 overflow-hidden rounded-[1.25rem] border border-[#d4af37]/20 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/45 hover:shadow-lg sm:rounded-[1.5rem] sm:p-5">
 
       {/* Left gold accent */}
 
       <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#d4af37]/50 to-[#d4af37]/20 transition duration-300 group-hover:from-[#d4af37] group-hover:to-[#d4af37]/50" />
 
-
       {/* Subtle background decoration */}
 
       <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-[#0d3b78]/[0.025] transition duration-300 group-hover:scale-125" />
 
+      <div className="relative flex min-w-0 items-center justify-between gap-2 sm:gap-4">
 
-      <div className="relative flex items-center justify-between gap-4">
+        <div className="min-w-0">
 
-        <div>
-
-          <p className="text-xs font-semibold text-gray-500">
+          <p className="truncate text-[10px] font-semibold text-gray-500 sm:text-xs">
             {title}
           </p>
 
-          <p className="mt-2 text-3xl font-bold tracking-tight text-[#0d3b78]">
+          <p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0d3b78] sm:mt-2 sm:text-3xl">
             {value}
           </p>
 
-          <p className="mt-1 text-[11px] text-gray-400">
+          <p className="mt-1 truncate text-[9px] text-gray-400 sm:text-[11px]">
             {description}
           </p>
 
         </div>
 
-
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0d3b78]/10 text-[#0d3b78] transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0d3b78]/10 text-[#0d3b78] transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78] sm:h-12 sm:w-12 sm:rounded-2xl">
 
           {icon}
 
