@@ -29,10 +29,6 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // IMPORTANT:
-  // If there is no authenticated user, send them to the login page.
-  // Do not redirect to "/" because "/" is the login page and can
-  // contribute to an authentication redirect loop.
   if (!user) {
     redirect("/login");
   }
@@ -56,7 +52,7 @@ export default async function DashboardPage() {
     adminName.trim().charAt(0).toUpperCase() || "A";
 
   // ============================================================
-  // GET MEMBER STATISTICS
+  // MEMBER STATISTICS
   // ============================================================
 
   const [
@@ -94,13 +90,13 @@ export default async function DashboardPage() {
     .eq("registration_date", todayString);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#f8f5ec] text-[#172033]">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#f8f5ec] text-[#172033]">
 
       {/* =====================================================
           PREMIUM HEADER
       ===================================================== */}
 
-      <header className="relative overflow-hidden bg-gradient-to-br from-[#082f63] via-[#0d3b78] to-[#174d91]">
+      <header className="relative w-full overflow-hidden bg-gradient-to-br from-[#082f63] via-[#0d3b78] to-[#174d91]">
 
         {/* Decorative circles */}
 
@@ -112,7 +108,11 @@ export default async function DashboardPage() {
 
         <div className="pointer-events-none absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-white/[0.015] blur-2xl" />
 
-        <div className="relative mx-auto flex min-h-[76px] w-full max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:min-h-[84px] sm:px-6 sm:py-5 lg:px-8">
+        {/* =================================================
+            HEADER CONTENT
+        ================================================= */}
+
+        <div className="relative mx-auto flex min-h-[76px] w-full max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:min-h-[84px] sm:gap-4 sm:px-6 sm:py-5 lg:px-8">
 
           {/* =================================================
               SCHOOL BRAND
@@ -120,27 +120,31 @@ export default async function DashboardPage() {
 
           <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
 
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#d4af37]/60 bg-white shadow-lg sm:h-12 sm:w-12 sm:rounded-2xl">
+            {/* MOBILE-FRIENDLY LOGO */}
+
+            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#d4af37]/70 bg-white shadow-lg sm:h-14 sm:w-14 sm:rounded-2xl">
 
               <Image
                 src="/logo.png"
                 alt="ጽርሐ ጽዮን ሰንበት ት/ቤት"
-                width={48}
-                height={48}
-                sizes="48px"
-                className="h-full w-full object-contain p-1"
+                width={56}
+                height={56}
+                sizes="56px"
                 priority
+                className="block h-full w-full object-contain p-1"
               />
 
             </div>
 
-            <div className="min-w-0 max-w-[150px] sm:max-w-none">
+            {/* SCHOOL NAME */}
 
-              <h1 className="truncate text-sm font-bold tracking-wide text-white sm:text-lg">
+            <div className="min-w-0 flex-1">
+
+              <h1 className="truncate text-[13px] font-bold tracking-wide text-white sm:text-lg">
                 ጽርሐ ጽዮን
               </h1>
 
-              <p className="truncate text-[10px] font-medium text-[#f5d77a] sm:text-xs">
+              <p className="truncate text-[9px] font-medium text-[#f5d77a] sm:text-xs">
                 ሰንበት ት/ቤት
               </p>
 
@@ -153,7 +157,7 @@ export default async function DashboardPage() {
               ADMIN PROFILE + LOGOUT
           ================================================= */}
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
 
             {/* Desktop / tablet profile */}
 
@@ -189,9 +193,10 @@ export default async function DashboardPage() {
 
             </div>
 
+
             {/* Mobile avatar */}
 
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#d4af37]/60 bg-white shadow-md md:hidden">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#d4af37]/70 bg-white shadow-md sm:h-10 sm:w-10 md:hidden">
 
               {avatarUrl ? (
                 <img
@@ -200,12 +205,15 @@ export default async function DashboardPage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-xs font-bold text-[#0d3b78]">
+                <span className="text-xs font-bold text-[#0d3b78] sm:text-sm">
                   {adminInitial}
                 </span>
               )}
 
             </div>
+
+
+            {/* Logout */}
 
             <div className="shrink-0">
               <LogoutButton />
@@ -226,13 +234,14 @@ export default async function DashboardPage() {
           MAIN CONTENT
       ===================================================== */}
 
-      <section className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <section className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+
 
         {/* =================================================
             WELCOME HERO
         ================================================= */}
 
-        <div className="relative overflow-hidden rounded-[1.5rem] border border-[#d4af37]/30 bg-white shadow-sm sm:rounded-[2rem]">
+        <div className="relative overflow-hidden rounded-[1.25rem] border border-[#d4af37]/30 bg-white shadow-sm sm:rounded-[2rem]">
 
           {/* Background decoration */}
 
@@ -242,9 +251,11 @@ export default async function DashboardPage() {
 
           <div className="pointer-events-none absolute -bottom-24 -left-20 h-52 w-52 rounded-full border border-[#0d3b78]/5" />
 
-          <div className="relative p-5 sm:p-8 lg:p-10">
+
+          <div className="relative p-4 sm:p-8 lg:p-10">
 
             <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+
 
               {/* =================================================
                   WELCOME CONTENT
@@ -252,30 +263,32 @@ export default async function DashboardPage() {
 
               <div className="min-w-0 max-w-2xl">
 
-                {/* Mobile logo */}
+
+                {/* MOBILE LOGO */}
 
                 <div className="mb-5 flex items-center gap-3 lg:hidden">
 
-                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#d4af37]/40 bg-[#f8f5ec] shadow-sm">
+                  <div className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#d4af37]/50 bg-[#f8f5ec] shadow-sm">
 
                     <Image
                       src="/logo.png"
                       alt="ጽርሐ ጽዮን ሰንበት ት/ቤት"
-                      width={64}
-                      height={64}
-                      sizes="64px"
-                      className="h-full w-full object-contain p-1"
+                      width={68}
+                      height={68}
+                      sizes="68px"
+                      priority
+                      className="block h-full w-full object-contain p-1"
                     />
 
                   </div>
 
                   <div className="min-w-0">
 
-                    <p className="text-sm font-bold text-[#0d3b78]">
+                    <p className="truncate text-sm font-bold text-[#0d3b78] sm:text-base">
                       ጽርሐ ጽዮን
                     </p>
 
-                    <p className="text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
                       ሰንበት ት/ቤት
                     </p>
 
@@ -284,7 +297,9 @@ export default async function DashboardPage() {
                 </div>
 
 
-                <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-[#d4af37]/30 bg-[#d4af37]/10 px-3 py-1.5 text-[11px] font-bold text-[#0d3b78] sm:mb-5 sm:px-3.5 sm:py-2 sm:text-xs">
+                {/* SCHOOL LABEL */}
+
+                <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-[#d4af37]/30 bg-[#d4af37]/10 px-3 py-1.5 text-[10px] font-bold text-[#0d3b78] sm:mb-5 sm:px-3.5 sm:py-2 sm:text-xs">
 
                   <Church size={14} className="shrink-0" />
 
@@ -295,9 +310,9 @@ export default async function DashboardPage() {
                 </div>
 
 
-                <h2 className="text-[1.65rem] font-bold leading-[1.25] tracking-tight text-[#172033] sm:text-3xl lg:text-4xl">
+                <h2 className="text-[1.5rem] font-bold leading-[1.3] tracking-tight text-[#172033] sm:text-3xl lg:text-4xl">
 
-                  እንኳን ወደ አስተዳደር ዳሽቦርዱ
+                  እንኳን ወደ አስተዳደር ዳሽቦርድ
 
                   <br className="hidden sm:block" />
 
@@ -308,10 +323,10 @@ export default async function DashboardPage() {
                 </h2>
 
 
-                <p className="mt-3 max-w-xl text-sm leading-6 text-gray-500 sm:mt-4 sm:text-base sm:leading-7">
+                <p className="mt-3 max-w-xl text-[13px] leading-6 text-gray-500 sm:mt-4 sm:text-base sm:leading-7">
 
                   የሰንበት ት/ቤቱን አባላት ምዝገባ፣
-                  ትምህርት እና አስተዳደር በአንድ ቦታ
+                  ትምህርት እና መዝሙር አስተዳደር በአንድ ቦታ
                   በቀላሉ ያስተዳድሩ።
 
                 </p>
@@ -320,7 +335,7 @@ export default async function DashboardPage() {
 
 
               {/* =================================================
-                  LARGE LOGO
+                  LARGE DESKTOP LOGO
               ================================================= */}
 
               <div className="hidden shrink-0 items-center justify-center rounded-full border border-[#d4af37]/40 bg-[#f8f5ec] shadow-inner lg:flex lg:h-36 lg:w-36">
@@ -333,7 +348,7 @@ export default async function DashboardPage() {
                     width={112}
                     height={112}
                     sizes="112px"
-                    className="h-full w-full object-contain p-2"
+                    className="block h-full w-full object-contain p-2"
                   />
 
                 </div>
@@ -356,7 +371,7 @@ export default async function DashboardPage() {
             MEMBER SEARCH
         ===================================================== */}
 
-        <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white shadow-sm sm:mt-7 sm:rounded-[1.75rem]">
+        <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-[#d4af37]/25 bg-white shadow-sm sm:mt-7 sm:rounded-[1.75rem]">
 
           <div className="p-4 sm:p-6">
 
@@ -410,7 +425,7 @@ export default async function DashboardPage() {
 
                 <button
                   type="submit"
-                  className="inline-flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0d3b78] to-[#174d91] px-6 py-3 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
+                  className="inline-flex min-h-[46px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0d3b78] to-[#174d91] px-6 py-3 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] sm:w-auto"
                 >
 
                   <Search size={17} />
@@ -432,7 +447,7 @@ export default async function DashboardPage() {
             STATISTICS
         ===================================================== */}
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-7 sm:gap-4 lg:grid-cols-4">
 
           <DashboardCard
             title="ጠቅላላ አባላት"
@@ -469,7 +484,7 @@ export default async function DashboardPage() {
             ADMINISTRATION ACTIONS
         ===================================================== */}
 
-        <div className="mt-8 sm:mt-10">
+        <div className="mt-7 sm:mt-10">
 
           <div className="mb-4 sm:mb-5">
 
@@ -494,7 +509,7 @@ export default async function DashboardPage() {
           </div>
 
 
-          <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3.5 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
 
             {/* ADD MEMBER */}
 
@@ -503,7 +518,7 @@ export default async function DashboardPage() {
               className="group block min-w-0"
             >
 
-              <div className="relative h-full overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
+              <div className="relative h-full overflow-hidden rounded-[1.35rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
 
                 <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#0d3b78]/[0.035] transition duration-500 group-hover:scale-125" />
 
@@ -561,7 +576,7 @@ export default async function DashboardPage() {
               className="group block min-w-0"
             >
 
-              <div className="relative h-full overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
+              <div className="relative h-full overflow-hidden rounded-[1.35rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
 
                 <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#d4af37]/[0.07] transition duration-500 group-hover:scale-125" />
 
@@ -619,7 +634,7 @@ export default async function DashboardPage() {
               className="group block min-w-0"
             >
 
-              <div className="relative h-full overflow-hidden rounded-[1.5rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
+              <div className="relative h-full overflow-hidden rounded-[1.35rem] border border-[#d4af37]/25 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/60 hover:shadow-xl sm:rounded-[1.75rem] sm:p-7">
 
                 <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#0d3b78]/[0.035] transition duration-500 group-hover:scale-125" />
 
@@ -679,7 +694,7 @@ export default async function DashboardPage() {
             EDUCATION / COURSES
         ===================================================== */}
 
-        <div className="mt-8 sm:mt-10">
+        <div className="mt-7 sm:mt-10">
 
           <div className="mb-4 sm:mb-5">
 
@@ -687,7 +702,7 @@ export default async function DashboardPage() {
 
               <div className="h-8 w-1 shrink-0 rounded-full bg-[#d4af37]" />
 
-              <div>
+              <div className="min-w-0">
 
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d4af37] sm:text-[11px]">
                   EDUCATION
@@ -704,13 +719,14 @@ export default async function DashboardPage() {
           </div>
 
 
-          <div className="relative overflow-hidden rounded-[1.5rem] border border-[#d4af37]/30 bg-gradient-to-br from-[#082f63] via-[#0d3b78] to-[#174d91] shadow-lg sm:rounded-[2rem]">
+          <div className="relative overflow-hidden rounded-[1.35rem] border border-[#d4af37]/30 bg-gradient-to-br from-[#082f63] via-[#0d3b78] to-[#174d91] shadow-lg sm:rounded-[2rem]">
 
             <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full border border-[#d4af37]/20" />
 
             <div className="pointer-events-none absolute -right-5 -top-5 h-32 w-32 rounded-full border border-white/5" />
 
             <div className="pointer-events-none absolute -bottom-24 -left-12 h-52 w-52 rounded-full border border-white/5" />
+
 
             <div className="relative p-5 sm:p-8">
 
@@ -739,6 +755,7 @@ export default async function DashboardPage() {
                   </div>
 
                 </div>
+
 
                 <div className="flex w-full sm:w-auto">
 
@@ -773,17 +790,11 @@ export default async function DashboardPage() {
             FOOTER
         ===================================================== */}
 
-        <footer className="mt-8 pb-5 pt-3 text-center sm:mt-10 sm:pb-6 sm:pt-4">
+        <footer className="mt-7 pb-5 pt-3 text-center sm:mt-10 sm:pb-6 sm:pt-4">
 
           <div className="mb-4 flex items-center justify-center gap-2 sm:gap-3">
 
-            <div className="h-px w-10 bg-gradient-to-r from-transparent to-[#d4af37]/50 sm:w-16" />
-
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#d4af37]/30 bg-white text-sm text-[#d4af37] shadow-sm">
-              ✝
-            </div>
-
-            <div className="h-px w-10 bg-gradient-to-l from-transparent to-[#d4af37]/50 sm:w-16" />
+           
 
           </div>
 
@@ -791,9 +802,7 @@ export default async function DashboardPage() {
             ጽርሐ ጽዮን ሰንበት ት/ቤት
           </p>
 
-          <p className="mt-1 text-[11px] text-gray-400">
-            ለእግዚአብሔር ክብር
-          </p>
+         
 
         </footer>
 
@@ -820,35 +829,37 @@ function DashboardCard({
   description: string;
 }) {
   return (
-    <div className="group relative min-w-0 overflow-hidden rounded-[1.25rem] border border-[#d4af37]/20 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/45 hover:shadow-lg sm:rounded-[1.5rem] sm:p-5">
+    <div className="group relative min-w-0 overflow-hidden rounded-[1.15rem] border border-[#d4af37]/20 bg-white p-3.5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/45 hover:shadow-lg sm:rounded-[1.5rem] sm:p-5">
 
       {/* Left gold accent */}
 
       <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#d4af37]/50 to-[#d4af37]/20 transition duration-300 group-hover:from-[#d4af37] group-hover:to-[#d4af37]/50" />
 
-      {/* Subtle background decoration */}
+      {/* Background decoration */}
 
       <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-[#0d3b78]/[0.025] transition duration-300 group-hover:scale-125" />
 
-      <div className="relative flex min-w-0 items-center justify-between gap-2 sm:gap-4">
+
+      <div className="relative flex min-w-0 items-center justify-between gap-1.5 sm:gap-4">
 
         <div className="min-w-0">
 
-          <p className="truncate text-[10px] font-semibold text-gray-500 sm:text-xs">
+          <p className="truncate text-[9px] font-semibold text-gray-500 sm:text-xs">
             {title}
           </p>
 
-          <p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0d3b78] sm:mt-2 sm:text-3xl">
+          <p className="mt-1 text-xl font-bold tracking-tight text-[#0d3b78] sm:mt-2 sm:text-3xl">
             {value}
           </p>
 
-          <p className="mt-1 truncate text-[9px] text-gray-400 sm:text-[11px]">
+          <p className="mt-1 truncate text-[8px] text-gray-400 sm:text-[11px]">
             {description}
           </p>
 
         </div>
 
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0d3b78]/10 text-[#0d3b78] transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78] sm:h-12 sm:w-12 sm:rounded-2xl">
+
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0d3b78]/10 text-[#0d3b78] transition duration-300 group-hover:bg-[#d4af37]/15 group-hover:text-[#0d3b78] sm:h-12 sm:w-12 sm:rounded-2xl">
 
           {icon}
 
