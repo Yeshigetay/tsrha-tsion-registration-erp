@@ -580,6 +580,9 @@ export default function MezmurAttendancePage() {
     setLoadingExistingMembers,
   ] = useState(false);
 
+  const [addMemberError, setAddMemberError] =
+    useState("");
+
   const [saving, setSaving] =
     useState(false);
 
@@ -592,6 +595,28 @@ export default function MezmurAttendancePage() {
     savingHistory,
     setSavingHistory,
   ] = useState(false);
+
+  const [permissionRecordId, setPermissionRecordId] =
+    useState<string | null>(null);
+  const [permissionTargetType, setPermissionTargetType] =
+    useState<"daily" | "history" | null>(null);
+  const [permissionPendingStatus, setPermissionPendingStatus] =
+    useState<AttendanceStatus | null>(null);
+  const [permissionPassword, setPermissionPassword] =
+    useState("");
+  const [permissionError, setPermissionError] =
+    useState("");
+  const [verifyingPermission, setVerifyingPermission] =
+    useState(false);
+
+  const [showClearDatePassword, setShowClearDatePassword] =
+    useState(false);
+  const [clearDatePassword, setClearDatePassword] =
+    useState("");
+  const [clearDateError, setClearDateError] =
+    useState("");
+  const [clearingDateHistory, setClearingDateHistory] =
+    useState(false);
 
   const [refreshing, setRefreshing] =
     useState(false);
@@ -1207,15 +1232,48 @@ export default function MezmurAttendancePage() {
     loadAttendanceForDate,
   ]);
 
+  const resetAddMemberState = () => {
+    setAddMemberSearch("");
+    setExistingMembers([]);
+    setAddMemberError("");
+  };
+
+  const resetHistoryState = () => {
+    setHistorySearch("");
+    setHistoryRecords([]);
+    setHistoryEdits({});
+
+    const freshToday = getEthiopianDate(new Date());
+
+    setHistoryYear(String(freshToday.year));
+    setHistoryMonth(String(freshToday.month));
+    setHistoryDay(String(freshToday.day));
+  };
+
   const openAddMemberModal =
     async () => {
+      resetAddMemberState();
+      resetHistoryState();
+      setError("");
+      setSuccess("");
       setShowAddMember(true);
-      setAddMemberSearch("");
-
-      if (existingMembers.length === 0) {
-        await loadExistingMembers();
-      }
+      await loadExistingMembers();
     };
+
+  const closeAddMemberModal = () => {
+    setShowAddMember(false);
+    resetAddMemberState();
+  };
+
+  const openHistoryModal = () => {
+    resetHistoryState();
+    setShowHistory(true);
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistory(false);
+    resetHistoryState();
+  };
 
   const addExistingMember =
     async (
@@ -1226,93 +1284,115 @@ export default function MezmurAttendancePage() {
       try {
         setError("");
         setSuccess("");
+        setAddMemberError("");
 
+        // A student may have only one active Mezmur assignment.
+        // Check every active assignment, not only the currently selected grade.
         const {
           data: existingAssignments,
           error: existingError,
         } = await supabase
           .from("mezmur_members")
-          .select(
-            "id, active, group_id",
-          )
-          .eq(
-            "member_id",
-            member.id,
-          );
+          .select("id, active, group_id")
+          .eq("member_id", member.id)
+          .eq("active", true);
 
         if (existingError) {
           throw existingError;
         }
 
-        const sameGroup =
-          (
-            existingAssignments ??
-            []
-          ).find(
-            (item: {
-              id: string;
-              active: boolean;
-              group_id: string;
-            }) =>
-              item.group_id ===
-              selectedGroupId,
-          );
+        const activeAssignment =
+          existingAssignments?.[0] ?? null;
 
-        if (sameGroup?.active) {
-          showError(
-            "ይህ አባል በዚህ መዝሙር ክፍል ውስጥ አለ።",
-          );
+        if (activeAssignment) {
+          const {
+            data: assignedGroup,
+            error: assignedGroupError,
+          } = await supabase
+            .from("mezmur_groups")
+            .select("id, code, name, grade_number, sort_order")
+            .eq("id", activeAssignment.group_id)
+            .maybeSingle();
+
+          if (assignedGroupError) {
+            throw assignedGroupError;
+          }
+
+          const assignedGroupName =
+            assignedGroup
+              ? getGroupDisplayName(
+                  assignedGroup as MezmurGroup,
+                )
+              : "ሌላ መዝሙር ክፍል";
+
+          const message =
+            activeAssignment.group_id ===
+            selectedGroupId
+              ? `ይህ ተማሪ በ${assignedGroupName} አስቀድሞ ተመድቧል።`
+              : `ይህ ተማሪ በ${assignedGroupName} አስቀድሞ ተመድቧል። አንድ ተማሪ በአንድ መዝሙር ክፍል ብቻ ሊመደብ ይችላል።`;
+
+          // Keep the Add Member modal open so the message is impossible to miss.
+          setAddMemberError(message);
           return;
         }
 
-        if (
-          sameGroup &&
-          !sameGroup.active
-        ) {
+        const {
+          data: sameGroupAssignment,
+          error: sameGroupError,
+        } = await supabase
+          .from("mezmur_members")
+          .select("id, active, group_id")
+          .eq("member_id", member.id)
+          .eq("group_id", selectedGroupId)
+          .maybeSingle();
+
+        if (sameGroupError) {
+          throw sameGroupError;
+        }
+
+        if (sameGroupAssignment && !sameGroupAssignment.active) {
           const {
             error: reactivateError,
           } = await supabase
             .from("mezmur_members")
-            .update({
-              active: true,
-            })
-            .eq(
-              "id",
-              sameGroup.id,
-            );
+            .update({ active: true })
+            .eq("id", sameGroupAssignment.id);
 
           if (reactivateError) {
             throw reactivateError;
           }
-        } else {
+        } else if (!sameGroupAssignment) {
           const {
             error: insertError,
           } = await supabase
             .from("mezmur_members")
             .insert({
               member_id: member.id,
-              group_id:
-                selectedGroupId,
+              group_id: selectedGroupId,
               active: true,
             });
 
           if (insertError) {
+            // Handle a database unique constraint as an assignment conflict too.
+            if (insertError.code === "23505") {
+              setAddMemberError(
+                "ይህ ተማሪ አስቀድሞ በሌላ መዝሙር ክፍል ተመድቧል።",
+              );
+              return;
+            }
+
             throw insertError;
           }
         }
 
-        await loadGroupMembers(
-          selectedGroupId,
-        );
+        await loadGroupMembers(selectedGroupId);
 
         await loadGroupDailyStats(
-          groups.map(
-            (group) => group.id,
-          ),
+          groups.map((group) => group.id),
           selectedDate,
         );
 
-        setShowAddMember(false);
+        closeAddMemberModal();
 
         showSuccess(
           "አባሉ በመዝሙር ክፍሉ ተመድቧል።",
@@ -1320,7 +1400,7 @@ export default function MezmurAttendancePage() {
       } catch (err) {
         console.error(err);
 
-        showError(
+        setAddMemberError(
           "አባሉን ወደ መዝሙር ክፍሉ ማከል አልተቻለም።",
         );
       }
@@ -1518,7 +1598,13 @@ export default function MezmurAttendancePage() {
   };
 
   const searchAttendanceHistory =
-    async () => {
+    async (
+      overrideDate?: {
+        year: number;
+        month: number;
+        day: number;
+      },
+    ) => {
       if (!selectedGroupId) return;
 
       try {
@@ -1529,12 +1615,15 @@ export default function MezmurAttendancePage() {
         setError("");
 
         const year =
+          overrideDate?.year ??
           Number(historyYear);
 
         const month =
+          overrideDate?.month ??
           Number(historyMonth);
 
         const day =
+          overrideDate?.day ??
           Number(historyDay);
 
         if (
@@ -1767,6 +1856,231 @@ export default function MezmurAttendancePage() {
         );
       }
     };
+
+  const openPermissionPasswordModal = (
+    recordId: string,
+    nextStatus: AttendanceStatus,
+    targetType: "daily" | "history",
+  ) => {
+    setPermissionRecordId(recordId);
+    setPermissionTargetType(targetType);
+    setPermissionPendingStatus(nextStatus);
+    setPermissionPassword("");
+    setPermissionError("");
+  };
+
+  const closePermissionPasswordModal = () => {
+    if (verifyingPermission) return;
+    setPermissionRecordId(null);
+    setPermissionTargetType(null);
+    setPermissionPendingStatus(null);
+    setPermissionPassword("");
+    setPermissionError("");
+  };
+
+  const openClearDatePasswordModal = () => {
+    setClearDatePassword("");
+    setClearDateError("");
+    setShowClearDatePassword(true);
+  };
+
+  const closeClearDatePasswordModal = () => {
+    if (clearingDateHistory) return;
+    setShowClearDatePassword(false);
+    setClearDatePassword("");
+    setClearDateError("");
+  };
+
+  const clearCurrentDateHistory = async () => {
+    const historyDate = `${historyYear}-${String(Number(historyMonth)).padStart(2, "0")}-${String(Number(historyDay)).padStart(2, "0")}`;
+
+    if (!clearDatePassword.trim()) {
+      setClearDateError("የአስተዳዳሪ ይለፍ ቃል ያስገቡ።");
+      return;
+    }
+
+    try {
+      setClearingDateHistory(true);
+      setClearDateError("");
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
+
+      if (!user?.email) {
+        setClearDateError("የአስተዳዳሪ የመግቢያ መረጃ አልተገኘም። እባክዎ እንደገና ይግቡ።");
+        return;
+      }
+
+      const { error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: clearDatePassword,
+        });
+
+      if (authError) {
+        setClearDateError("የአስተዳዳሪ ይለፍ ቃሉ ትክክል አይደለም። ምንም ለውጥ አልተደረገም።");
+        return;
+      }
+
+      const { error: deleteError } = await supabase
+        .from("mezmur_attendance")
+        .delete()
+        .eq("attendance_date", historyDate);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      setHistoryRecords([]);
+      setHistoryEdits({});
+
+      if (selectedGroupId && selectedDate === historyDate) {
+        await loadAttendanceForDate(
+          selectedGroupId,
+          selectedDate,
+        );
+
+        await loadGroupDailyStats(
+          groups.map((group) => group.id),
+          selectedDate,
+        );
+      }
+
+      setShowClearDatePassword(false);
+      setClearDatePassword("");
+      setClearDateError("");
+
+      showSuccess(
+        `${formatEthiopianDate(historyDate)} የመገኘት ታሪክ በቋሚነት ተሰርዟል።`,
+      );
+    } catch (err) {
+      console.error(err);
+      setClearDateError("የዚህን ቀን የመገኘት ታሪክ መሰረዝ አልተቻለም።");
+    } finally {
+      setClearingDateHistory(false);
+    }
+  };
+
+  const confirmAbsentToPermission = async () => {
+    if (
+      !permissionRecordId ||
+      !permissionPendingStatus ||
+      !permissionTargetType
+    ) {
+      return;
+    }
+
+    let memberName = "ተማሪው";
+    let currentStatus: AttendanceStatus;
+
+    if (permissionTargetType === "history") {
+      const record = historyRecords.find(
+        (item) => item.id === permissionRecordId,
+      );
+
+      if (!record) {
+        closePermissionPasswordModal();
+        return;
+      }
+
+      memberName = record.memberName;
+      currentStatus =
+        historyEdits[record.id] ?? record.status;
+    } else {
+      const member = members.find(
+        (item) => item.id === permissionRecordId,
+      );
+
+      if (!member) {
+        closePermissionPasswordModal();
+        return;
+      }
+
+      memberName = member.member
+        ? `${member.member.first_name} ${member.member.father_name}`.trim()
+        : "አባል";
+      currentStatus =
+        attendance[member.id] ?? "absent";
+    }
+
+    if (currentStatus === permissionPendingStatus) {
+      closePermissionPasswordModal();
+      return;
+    }
+
+    if (!permissionPassword.trim()) {
+      setPermissionError("የአስተዳዳሪ ይለፍ ቃል ያስገቡ።");
+      return;
+    }
+
+    try {
+      setVerifyingPermission(true);
+      setPermissionError("");
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
+
+      if (!user?.email) {
+        setPermissionError(
+          "የአስተዳዳሪ የመግቢያ መረጃ አልተገኘም። እባክዎ እንደገና ይግቡ።",
+        );
+        return;
+      }
+
+      const { error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: permissionPassword,
+        });
+
+      if (authError) {
+        setPermissionError(
+          "የአስተዳዳሪ ይለፍ ቃሉ ትክክል አይደለም። ምንም ለውጥ አልተደረገም።",
+        );
+        return;
+      }
+
+      if (permissionTargetType === "history") {
+        setHistoryStatus(
+          permissionRecordId,
+          permissionPendingStatus,
+        );
+      } else {
+        setMemberAttendance(
+          permissionRecordId,
+          permissionPendingStatus,
+        );
+      }
+
+      const statusLabel =
+        STATUS_LABELS[permissionPendingStatus];
+
+      setPermissionRecordId(null);
+      setPermissionTargetType(null);
+      setPermissionPendingStatus(null);
+      setPermissionPassword("");
+      setPermissionError("");
+
+      showSuccess(
+        `${memberName} የመገኘት ሁኔታ ወደ ${statusLabel} ተቀይሯል። ለውጡን ለማስቀመጥ የማስቀመጫ ቁልፉን ይጫኑ።`,
+      );
+    } catch (err) {
+      console.error(err);
+      setPermissionError(
+        "የአስተዳዳሪ ይለፍ ቃል ማረጋገጥ አልተቻለም።",
+      );
+    } finally {
+      setVerifyingPermission(false);
+    }
+  };
 
   const setHistoryStatus = (
     recordId: string,
@@ -2538,10 +2852,8 @@ export default function MezmurAttendancePage() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowHistory(
-                        true,
-                      )
+                    onClick={
+                      openHistoryModal
                     }
                     className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600 active:scale-[0.98]"
                   >
@@ -2730,12 +3042,20 @@ export default function MezmurAttendancePage() {
                                           status
                                         }
                                         type="button"
-                                        onClick={() =>
-                                          setMemberAttendance(
+                                        onClick={() => {
+                                          const currentStatus =
+                                            attendance[item.id] ?? "absent";
+
+                                          if (status === currentStatus) {
+                                            return;
+                                          }
+
+                                          openPermissionPasswordModal(
                                             item.id,
                                             status,
-                                          )
-                                        }
+                                            "daily",
+                                          );
+                                        }}
                                         className={`flex min-h-[50px] items-center justify-center gap-2 rounded-2xl border px-3 text-[11px] font-black transition active:scale-[0.97] sm:min-w-[125px] ${
                                           active
                                             ? STATUS_STYLES[
@@ -2864,10 +3184,8 @@ export default function MezmurAttendancePage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowAddMember(
-                    false,
-                  )
+                onClick={
+                  closeAddMemberModal
                 }
                 className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
               >
@@ -2876,6 +3194,21 @@ export default function MezmurAttendancePage() {
             </div>
 
             <div className="border-b border-slate-100 p-4 sm:p-5">
+              {addMemberError && (
+                <div className="mb-3 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold leading-6 text-rose-700">
+                  <X className="mt-1 h-4 w-4 shrink-0" />
+                  <span>{addMemberError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAddMemberError("")}
+                    className="ml-auto shrink-0"
+                    aria-label="close error"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
               <div className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -2894,6 +3227,10 @@ export default function MezmurAttendancePage() {
                     )
                   }
                   placeholder="ስም፣ የመመዝገቢያ ቁጥር ወይም ስልክ..."
+                  name="mezmur-new-member-search"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  spellCheck={false}
                   autoFocus
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-bold outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
                 />
@@ -2996,17 +3333,29 @@ export default function MezmurAttendancePage() {
                 </h2>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setShowHistory(
-                    false,
-                  )
-                }
-                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetHistoryState();
+                  }}
+                  title="ታሪክን አድስ"
+                  className="flex h-10 items-center justify-center gap-2 rounded-2xl bg-indigo-50 px-4 text-sm font-black text-indigo-600 transition hover:bg-indigo-100"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>አድስ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeHistoryModal
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <div className="border-b border-slate-100 bg-slate-50/70 p-4 sm:p-5">
@@ -3275,12 +3624,10 @@ export default function MezmurAttendancePage() {
 
                 <button
                   type="button"
-                  onClick={
-                    searchAttendanceHistory
-                  }
-                  disabled={
-                    searchingHistory
-                  }
+                  onClick={() => {
+                    void searchAttendanceHistory();
+                  }}
+                  disabled={searchingHistory}
                   className="flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-black text-white shadow-lg shadow-indigo-200 disabled:opacity-60"
                 >
                   {searchingHistory ? (
@@ -3293,20 +3640,33 @@ export default function MezmurAttendancePage() {
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
-                <CalendarDays className="h-4 w-4 shrink-0 text-indigo-500" />
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
+                  <CalendarDays className="h-4 w-4 shrink-0 text-indigo-500" />
 
-                <span className="text-xs font-black text-indigo-700">
-                  {historyDay}{" "}
-                  {
-                    ETHIOPIAN_MONTHS[
-                      Number(
-                        historyMonth,
-                      ) - 1
-                    ]
-                  }{" "}
-                  {historyYear}
-                </span>
+                  <span className="text-xs font-black text-indigo-700">
+                    {historyDay}{" "}
+                    {
+                      ETHIOPIAN_MONTHS[
+                        Number(
+                          historyMonth,
+                        ) - 1
+                      ]
+                    }{" "}
+                    {historyYear}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    openClearDatePasswordModal
+                  }
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 transition hover:bg-rose-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  የዚህን ቀን ታሪክ አጽዳ
+                </button>
               </div>
 
               <div className="relative mt-3">
@@ -3325,6 +3685,7 @@ export default function MezmurAttendancePage() {
                     )
                   }
                   placeholder="በአባል ስም ወይም በመመዝገቢያ ቁጥር ይፈልጉ..."
+                  autoComplete="off"
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-bold outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                 />
               </div>
@@ -3371,27 +3732,29 @@ export default function MezmurAttendancePage() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={
-                        saveHistoryChanges
-                      }
-                      disabled={
-                        savingHistory ||
-                        !historyHasChanges
-                      }
-                      className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white shadow-lg transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {savingHistory ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={
+                          saveHistoryChanges
+                        }
+                        disabled={
+                          savingHistory ||
+                          !historyHasChanges
+                        }
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-black text-white shadow-lg transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {savingHistory ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
 
-                      {savingHistory
-                        ? "በመቀመጥ ላይ..."
-                        : "ለውጦችን አስቀምጥ"}
-                    </button>
+                        {savingHistory
+                          ? "በመቀመጥ ላይ..."
+                          : "ለውጦችን አስቀምጥ"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -3460,12 +3823,17 @@ export default function MezmurAttendancePage() {
                                           status
                                         }
                                         type="button"
-                                        onClick={() =>
-                                          setHistoryStatus(
+                                        onClick={() => {
+                                          if (status === currentStatus) {
+                                            return;
+                                          }
+
+                                          openPermissionPasswordModal(
                                             record.id,
                                             status,
-                                          )
-                                        }
+                                            "history",
+                                          );
+                                        }}
                                         className={`flex min-h-[48px] items-center justify-center gap-2 rounded-xl border px-2 text-[10px] font-black transition active:scale-[0.97] sm:text-[11px] ${
                                           active
                                             ? STATUS_STYLES[
@@ -3506,6 +3874,102 @@ export default function MezmurAttendancePage() {
           </div>
         </div>
       )}
+      {showClearDatePassword && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-lg font-black text-slate-900">የዚህን ቀን ታሪክ ለማጽዳት ማረጋገጫ</h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                  {formatEthiopianDate(`${historyYear}-${String(Number(historyMonth)).padStart(2, "0")}-${String(Number(historyDay)).padStart(2, "0")}`)} የሁሉንም ተማሪዎች የመገኘት ታሪክ በቋሚነት ለመሰረዝ የአስተዳዳሪውን የይለፍ ቃል ያስገቡ።
+                </p>
+              </div>
+              <button type="button" onClick={closeClearDatePasswordModal} disabled={clearingDateHistory} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 disabled:opacity-50">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {clearDateError && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold leading-6 text-rose-700">
+                <X className="mt-1 h-4 w-4 shrink-0" />
+                <span>{clearDateError}</span>
+              </div>
+            )}
+
+            <div className="mt-5">
+              <label className="mb-2 block text-sm font-black text-slate-700">የአስተዳዳሪ ይለፍ ቃል</label>
+              <input
+                type="password"
+                value={clearDatePassword}
+                onChange={(event) => {
+                  setClearDatePassword(event.target.value);
+                  if (clearDateError) setClearDateError("");
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void clearCurrentDateHistory();
+                }}
+                autoFocus
+                autoComplete="current-password"
+                placeholder="የይለፍ ቃል"
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+              />
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button type="button" onClick={closeClearDatePasswordModal} disabled={clearingDateHistory} className="h-12 rounded-2xl bg-slate-100 text-sm font-black text-slate-600 transition hover:bg-slate-200 disabled:opacity-50">ሰርዝ</button>
+              <button type="button" onClick={() => void clearCurrentDateHistory()} disabled={clearingDateHistory || !clearDatePassword.trim()} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-rose-600 text-sm font-black text-white shadow-lg shadow-rose-200 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50">
+                {clearingDateHistory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                አጽዳ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {permissionRecordId && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                  <Check className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-lg font-black text-slate-900">የመገኘት ሁኔታ ለመቀየር ማረጋገጫ</h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                  የመገኘት ሁኔታን ለመቀየር የአስተዳዳሪውን የይለፍ ቃል ያስገቡ
+                </p>
+              </div>
+              <button type="button" onClick={closePermissionPasswordModal} disabled={verifyingPermission} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 disabled:opacity-50">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {permissionError && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold leading-6 text-rose-700">
+                <X className="mt-1 h-4 w-4 shrink-0" />
+                <span>{permissionError}</span>
+              </div>
+            )}
+
+            <div className="mt-5">
+              <label className="mb-2 block text-sm font-black text-slate-700">የአስተዳዳሪ ይለፍ ቃል</label>
+              <input type="password" value={permissionPassword} onChange={(event) => { setPermissionPassword(event.target.value); if (permissionError) setPermissionError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void confirmAbsentToPermission(); }} autoFocus autoComplete="current-password" placeholder="የይለፍ ቃል" className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100" />
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button type="button" onClick={closePermissionPasswordModal} disabled={verifyingPermission} className="h-12 rounded-2xl bg-slate-100 text-sm font-black text-slate-600 transition hover:bg-slate-200 disabled:opacity-50">ሰርዝ</button>
+              <button type="button" onClick={() => void confirmAbsentToPermission()} disabled={verifyingPermission || !permissionPassword.trim()} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-indigo-600 text-sm font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+                {verifyingPermission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                አረጋግጥ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
