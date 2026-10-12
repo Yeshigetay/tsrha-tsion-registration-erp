@@ -15,6 +15,7 @@ import {
   GraduationCap, 
   Church, 
   Cross, 
+  FileDown,
   ChevronRight, 
   CalendarDays, 
   Check, 
@@ -2461,6 +2462,135 @@ export default function MezmurAttendancePage() {
       ], 
     ); 
  
+  const exportHistoryToPdf = () => {
+    if (!historyHasSearched || searchingHistory) {
+      showError("መጀመሪያ የተመረጠውን ቀን የመገኘት መረጃ ይፈልጉ።");
+      return;
+    }
+
+    if (filteredHistory.length === 0) {
+      showError("ወደ PDF ለማውጣት የመገኘት መረጃ የለም።");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=1000,height=750");
+
+    if (!printWindow) {
+      showError("የPDF መስኮቱ አልተከፈተም። እባክዎ ለዚህ ገጽ pop-up እንዲከፈት ይፍቀዱ።");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const selectedDateLabel = `${historyDay} ${
+      ETHIOPIAN_MONTHS[Number(historyMonth) - 1] ?? ""
+    } ${historyYear}`;
+    const groupName = selectedGroup
+      ? getGroupDisplayName(selectedGroup)
+      : "መዝሙር";
+
+    const rows = filteredHistory
+      .map((record, index) => {
+        const status = historyEdits[record.id] ?? record.status;
+
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${escapeHtml(record.memberName)}</td>
+            <td>${escapeHtml(record.registrationNumber || "—")}</td>
+            <td>${escapeHtml(STATUS_LABELS[status])}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+      <html lang="am">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>የመዝሙር የመገኘት ታሪክ - ${escapeHtml(selectedDateLabel)}</title>
+          <style>
+            @page { size: A4 portrait; margin: 16mm; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: "Noto Sans Ethiopic", "Nyala", "Abyssinica SIL", sans-serif;
+              color: #172033;
+              margin: 0;
+              font-size: 12px;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            header { text-align: center; margin-bottom: 22px; }
+            h1 { font-size: 22px; margin: 0 0 8px; }
+            .subtitle { color: #475569; font-size: 13px; margin: 4px 0; }
+            .meta {
+              display: flex;
+              justify-content: space-between;
+              gap: 12px;
+              flex-wrap: wrap;
+              margin: 18px 0 14px;
+              padding: 12px;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              background: #f8fafc;
+            }
+            table { width: 100%; border-collapse: collapse; }
+            th, td {
+              border: 1px solid #cbd5e1;
+              padding: 9px 8px;
+              text-align: left;
+              vertical-align: top;
+              overflow-wrap: anywhere;
+            }
+            th { background: #e2e8f0; font-weight: 700; }
+            tbody tr { break-inside: avoid; }
+            footer { margin-top: 24px; color: #64748b; font-size: 10px; text-align: center; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <header>
+            <h1>የመዝሙር የመገኘት ታሪክ</h1>
+            <p class="subtitle">የተመዝጋቢዎች የመገኘት ሪፖርት</p>
+          </header>
+          <section class="meta">
+            <div><strong>ቀን፦</strong> ${escapeHtml(selectedDateLabel)}</div>
+            <div><strong>ክፍል፦</strong> ${escapeHtml(groupName)}</div>
+            <div><strong>የአባላት ብዛት፦</strong> ${filteredHistory.length}</div>
+          </section>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 7%">ተ.ቁ</th>
+                <th style="width: 38%">የአባል ሙሉ ስም</th>
+                <th style="width: 25%">የመመዝገቢያ ቁጥር</th>
+                <th style="width: 30%">የመገኘት ሁኔታ</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <footer>የተዘጋጀው በመዝሙር የመገኘት ስርዓት</footer>
+          <script>
+            window.addEventListener("load", function () {
+              window.setTimeout(function () {
+                window.focus();
+                window.print();
+              }, 300);
+            });
+          <\/script>
+        </body>
+      </html>`);
+    printWindow.document.close();
+  };
+
   const selectedGroupDailyStats = 
     useMemo(() => { 
       const serverStats = 
@@ -3950,6 +4080,20 @@ export default function MezmurAttendancePage() {
                 </span> 
               </div> 
  
+              <button
+                type="button"
+                onClick={exportHistoryToPdf}
+                disabled={
+                  !historyHasSearched ||
+                  searchingHistory ||
+                  filteredHistory.length === 0
+                }
+                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 text-sm font-black text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FileDown className="h-4 w-4" />
+                PDF አውጣ
+              </button>
+
               <div className="relative mt-3"> 
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /> 
  
